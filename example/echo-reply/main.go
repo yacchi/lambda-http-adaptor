@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/yacchi/lambda-http-adaptor"
+	_ "github.com/yacchi/lambda-http-adaptor/all"
 	"log"
 	"net/http"
 )
