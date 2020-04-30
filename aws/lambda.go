@@ -166,7 +166,7 @@ type LambdaAdaptor struct {
 }
 
 func (l LambdaAdaptor) ListenAndServe() error {
-	lambda.Start(l.h)
+	lambda.StartHandler(l.h)
 	return nil
 }
 
