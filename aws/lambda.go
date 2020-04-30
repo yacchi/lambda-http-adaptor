@@ -46,7 +46,16 @@ func (t integrationTypeChecker) IntegrationType() LambdaIntegrationType {
 }
 
 func LambdaDetector() bool {
-	return os.Getenv("_LAMBDA_SERVER_PORT") != ""
+	if os.Getenv("AWS_EXECUTION_ENV") != "" {
+		return true
+	}
+	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
+		return true
+	}
+	if os.Getenv("AWS_LAMBDA_FUNCTION_VERSION") != "" {
+		return true
+	}
+	return false
 }
 
 type LambdaHandler struct {
