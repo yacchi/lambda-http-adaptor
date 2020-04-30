@@ -15,7 +15,7 @@ type registry struct {
 	providers []*provider
 }
 
-func (r registry) AddAdaptor(name string, detector types.EnvironmentDetector, adaptor types.AdaptorInitializer) {
+func (r *registry) AddAdaptor(name string, detector types.EnvironmentDetector, adaptor types.AdaptorInitializer) {
 	r.providers = append(r.providers, &provider{
 		Name:        name,
 		EnvDetector: detector,
@@ -23,7 +23,7 @@ func (r registry) AddAdaptor(name string, detector types.EnvironmentDetector, ad
 	})
 }
 
-func (r registry) GetAdaptor(addr string, h http.Handler) types.Adaptor {
+func (r *registry) GetAdaptor(addr string, h http.Handler) types.Adaptor {
 	for _, d := range r.providers {
 		if d.EnvDetector() {
 			return d.Init(addr, h)
