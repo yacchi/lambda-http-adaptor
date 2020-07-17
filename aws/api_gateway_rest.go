@@ -83,7 +83,7 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 		}
 	}
 
-	r.WithContext(internal.NewRawRequestValueContext(r.Context(), &e))
+	r = r.WithContext(internal.NewRawRequestValueContext(r.Context(), e))
 
 	return
 }

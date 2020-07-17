@@ -69,7 +69,7 @@ func NewHTTPAPIRequest(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (
 
 	r.RequestURI = r.URL.RequestURI()
 
-	r.WithContext(internal.NewRawRequestValueContext(r.Context(), &e))
+	r = r.WithContext(internal.NewRawRequestValueContext(r.Context(), e))
 
 	if r.Header.Get(types.HTTPHeaderXRayTraceIDKey) == "" {
 		if traceID := ctx.Value(types.AWSXRayTraceIDContextKey); traceID != nil {

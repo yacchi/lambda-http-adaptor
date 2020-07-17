@@ -72,7 +72,7 @@ func NewALBTargetGroupRequest(ctx context.Context, e *events.ALBTargetGroupReque
 
 	r.RequestURI = r.URL.RequestURI()
 
-	r.WithContext(internal.NewRawRequestValueContext(r.Context(), &e))
+	r = r.WithContext(internal.NewRawRequestValueContext(r.Context(), e))
 
 	return
 }
