@@ -32,7 +32,7 @@ func main() {
 	mux.HandleFunc("/headers", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
 		for k, v := range request.Header {
-			writer.Write([]byte(fmt.Sprintf("%s=%s", k, strings.Join(v, ", "))))
+			writer.Write([]byte(fmt.Sprintf("%s=%s\n", k, strings.Join(v, ", "))))
 		}
 	})
 
