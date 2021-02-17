@@ -1,3 +1,9 @@
+/*
+Lambda event type compatibility layer for AWS API Gateway with REST API mode.
+
+See lambda event detail:
+https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+*/
 package aws
 
 import (
@@ -14,8 +20,7 @@ import (
 	"strconv"
 )
 
-// https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
-
+// Lambda event type to http.Request converter for API Gateway with REST API mode.
 func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r *http.Request, multiValue bool, err error) {
 	var (
 		body   *bytes.Buffer
@@ -88,6 +93,7 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 	return
 }
 
+// Response writer for API Gateway with REST API mode.
 func RESTAPITargetResponse(w *ResponseWriter, multiValue bool) (r *events.APIGatewayProxyResponse, err error) {
 	r = &events.APIGatewayProxyResponse{
 		StatusCode:      w.status,

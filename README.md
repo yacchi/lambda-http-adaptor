@@ -43,7 +43,9 @@ func echoReplyHandler(w http.ResponseWriter, r *http.Request) {
     - [x] Multi-value headers
     - [ ] Get ALBTargetGroupRequestContext value from Context
   - [x] Get raw request value from Context
-  - [ ] Abstract interface of RequestContext for API-GW REST and HTTP modes  
   - [x] Lambda container image function
+- AWS API Gateway utilities
+  - [x] Strip stage var middleware
+  - [ ] Abstract interface of RequestContext  
 - Azure Functions support
   - [ ] HTTP Trigger with custom handler

@@ -1,3 +1,9 @@
+/*
+Lambda event type compatibility layer for AWS Application Load Balancer target group mode.
+
+See lambda event detail:
+https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html#receive-event-from-load-balancer
+*/
 package aws
 
 import (
@@ -14,8 +20,7 @@ import (
 	"strconv"
 )
 
-// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html#receive-event-from-load-balancer
-
+// Lambda event type to http.Request converter for Application Load Balancer target group mode.
 func NewALBTargetGroupRequest(ctx context.Context, e *events.ALBTargetGroupRequest) (r *http.Request, multiValue bool, err error) {
 	var (
 		body   *bytes.Buffer
@@ -77,6 +82,7 @@ func NewALBTargetGroupRequest(ctx context.Context, e *events.ALBTargetGroupReque
 	return
 }
 
+// Response writer for Application Load Balancer target group mode.
 func ALBTargetResponse(w *ResponseWriter, multiValue bool) (r *events.ALBTargetGroupResponse, err error) {
 	r = &events.ALBTargetGroupResponse{
 		StatusCode:        w.status,

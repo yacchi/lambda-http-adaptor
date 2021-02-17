@@ -1,3 +1,9 @@
+/*
+Lambda event type compatibility layer for AWS API Gateway with HTTP API mode.
+
+See lambda event detail:
+https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+*/
 package aws
 
 import (
@@ -13,8 +19,7 @@ import (
 	"strconv"
 )
 
-// https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
-
+// Lambda event type to http.Request converter for API Gateway with HTTP API mode.
 func NewHTTPAPIRequest(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *http.Request, err error) {
 	var (
 		body   *bytes.Buffer
