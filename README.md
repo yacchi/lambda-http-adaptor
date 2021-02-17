@@ -1,7 +1,5 @@
 # lambda-http-adaptor
-
-[![GoDoc Reference](https://pkg.go.dev/github.com/yacchi/lambda-http-adaptor?status.svg)](https://pkg.go.dev/github.com/yacchi/lambda-http-adaptor)  
-![GitHub](https://img.shields.io/github/license/yacchi/lambda-http-adaptor)
+[![Go Reference](https://pkg.go.dev/badge/github.com/yacchi/lambda-http-adaptor.svg)](https://pkg.go.dev/github.com/yacchi/lambda-http-adaptor) ![GitHub](https://img.shields.io/github/license/yacchi/lambda-http-adaptor)
 
 lambda-http-adaptor is a compatible adaptor for Go `net/http` that can be used in multiple serverless environments.  
 
