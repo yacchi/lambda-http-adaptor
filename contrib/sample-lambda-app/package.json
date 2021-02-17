@@ -1,0 +1,21 @@
+{
+  "name": "lambda-http-adaptor-sample",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "go build -o app/main app/main.go",
+    "clean": "rm app/main",
+    "prerun": "yarn build"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-apigatewayv2": "^1.89.0",
+    "@aws-cdk/aws-apigatewayv2-integrations": "^1.89.0",
+    "@aws-cdk/aws-iam": "^1.89.0",
+    "@aws-cdk/aws-lambda": "^1.89.0",
+    "@aws-cdk/core": "^1.89.0",
+    "@types/node": "^14.14.28",
+    "aws-cdk": "^1.89.0",
+    "cdk": "^1.89.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.5"
+  }
+}
