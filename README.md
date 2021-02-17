@@ -35,13 +35,13 @@ func echoReplyHandler(w http.ResponseWriter, r *http.Request) {
   - [x] API Gateway REST API integration
     - [x] Multi-value headers
     - [x] Multi-value query string
-    - [ ] Get ProxyRequestContext value from Context 
+    - [x] Get ProxyRequestContext value from Context 
   - [x] API Gateway HTTP API integration
     - [x] Multi-value headers
-    - [ ] Get V2 HTTPRequestContext value from Context 
+    - [x] Get V2 HTTPRequestContext value from Context 
   - [x] Application Load Balancer Lambda target
     - [x] Multi-value headers
-    - [ ] Get ALBTargetGroupRequestContext value from Context
+    - [x] Get ALBTargetGroupRequestContext value from Context
   - [x] Get raw request value from Context
   - [x] Lambda container image function
 - AWS API Gateway utilities
