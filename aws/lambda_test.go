@@ -180,7 +180,7 @@ func TestLambdaHTTPModeGet(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res APIGatewayV2HTTPResponse
+			var res events.APIGatewayV2HTTPResponse
 			err = json.Unmarshal(ret, &res)
 			assert.NoError(t, err)
 
@@ -213,7 +213,7 @@ func TestLambdaHTTPModePost(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res APIGatewayV2HTTPResponse
+			var res events.APIGatewayV2HTTPResponse
 			err = json.Unmarshal(ret, &res)
 			assert.NoError(t, err)
 

@@ -79,7 +79,7 @@ func (l LambdaHandler) InvokeRESTAPI(ctx context.Context, e *events.APIGatewayPr
 	return RESTAPITargetResponse(w, multiValue)
 }
 
-func (l LambdaHandler) InvokeHTTPAPI(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *APIGatewayV2HTTPResponse, err error) {
+func (l LambdaHandler) InvokeHTTPAPI(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *events.APIGatewayV2HTTPResponse, err error) {
 	req, err := NewHTTPAPIRequest(ctx, e)
 	if err != nil {
 		return nil, err

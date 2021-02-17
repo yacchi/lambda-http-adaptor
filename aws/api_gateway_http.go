@@ -81,15 +81,9 @@ func NewHTTPAPIRequest(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (
 
 }
 
-type APIGatewayV2HTTPResponse struct {
-	StatusCode      int               `json:"statusCode"`
-	Headers         map[string]string `json:"headers"`
-	Body            string            `json:"body"`
-	IsBase64Encoded bool              `json:"isBase64Encoded,omitempty"`
-}
-
-func HTTPAPIResponse(w *ResponseWriter) (r *APIGatewayV2HTTPResponse, err error) {
-	r = &APIGatewayV2HTTPResponse{
+// Response writer for API Gateway with HTTP API mode.
+func HTTPAPIResponse(w *ResponseWriter) (r *events.APIGatewayV2HTTPResponse, err error) {
+	r = &events.APIGatewayV2HTTPResponse{
 		StatusCode:      w.status,
 		IsBase64Encoded: utils.IsBinaryContent(w.Header()),
 		Headers:         utils.SemicolonSeparatedHeaderMap(w.headers),
