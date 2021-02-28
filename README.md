@@ -44,6 +44,7 @@ func echoReplyHandler(w http.ResponseWriter, r *http.Request) {
     - [x] Get ALBTargetGroupRequestContext value from Context
   - [x] Get raw request value from Context
   - [x] Lambda container image function
+  - [x] API Gateway Websocket API integration (Experimental)
 - AWS API Gateway utilities
   - [x] Strip stage var middleware
   - [ ] Abstract interface of RequestContext  
