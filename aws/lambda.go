@@ -7,68 +7,54 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambda/handlertrace"
-	"github.com/yacchi/lambda-http-adaptor/registry"
-	"github.com/yacchi/lambda-http-adaptor/types"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"net/http"
-	"os"
 )
 
-type LambdaIntegrationType int
+type LambdaHandlerOption func(handler *LambdaHandler)
 
-const (
-	UnknownLambdaIntegrationType LambdaIntegrationType = iota
-	APIGatewayRESTIntegration
-	APIGatewayHTTPIntegration
-	ALBTargetGroupIntegration
-)
+type SDKSessionProvider func() (*session.Session, error)
 
-type integrationTypeChecker struct {
-	// 'resource' parameter only has REST API event.
-	Resource *string `json:"resource"`
-	// 'version' parameter only has HTTP API mode event.
-	Version *string `json:"version"`
-	// 'http_method' parameter has event of API Gateway REST API mode and ALB target group mode.
-	// However, ALB target group mode has not 'resource' parameter.
-	HTTPMethod *string `json:"httpMethod"`
-}
-
-func (t integrationTypeChecker) IntegrationType() LambdaIntegrationType {
-	if t.Resource != nil {
-		return APIGatewayRESTIntegration
+func WithAWSSessionProvider(sp SDKSessionProvider) LambdaHandlerOption {
+	return func(handler *LambdaHandler) {
+		handler.sessProv = sp
 	}
-	if t.Version != nil {
-		return APIGatewayHTTPIntegration
-	}
-	if t.HTTPMethod != nil && t.Resource == nil {
-		return ALBTargetGroupIntegration
-	}
-	return UnknownLambdaIntegrationType
-}
-
-func LambdaDetector() bool {
-	if os.Getenv("AWS_EXECUTION_ENV") != "" {
-		return true
-	}
-	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
-		return true
-	}
-	if os.Getenv("AWS_LAMBDA_FUNCTION_VERSION") != "" {
-		return true
-	}
-	return false
 }
 
 type LambdaHandler struct {
-	httpHandler http.Handler
+	httpHandler  http.Handler
+	sessProv     SDKSessionProvider
+	sess         *session.Session
+	apiGW        *apigatewaymanagementapi.ApiGatewayManagementApi
+	wsPathPrefix string
+}
+
+func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Handler {
+	handler := &LambdaHandler{
+		httpHandler: h,
+		sessProv: func() (*session.Session, error) {
+			return session.NewSessionWithOptions(session.Options{
+				SharedConfigState: session.SharedConfigEnable,
+			})
+		},
+		wsPathPrefix: DefaultWebsocketPathPrefix,
+	}
+
+	for _, opt := range options {
+		if lambdaOpt, ok := opt.(LambdaHandlerOption); ok {
+			lambdaOpt(handler)
+		}
+	}
+
+	return handler
 }
 
 func NewLambdaHandler(h http.Handler) lambda.Handler {
-	return &LambdaHandler{
-		httpHandler: h,
-	}
+	return NewLambdaHandlerWithOption(h, nil)
 }
 
-func (l LambdaHandler) InvokeRESTAPI(ctx context.Context, e *events.APIGatewayProxyRequest) (r *events.APIGatewayProxyResponse, err error) {
+func (l *LambdaHandler) InvokeRESTAPI(ctx context.Context, e *events.APIGatewayProxyRequest) (r *events.APIGatewayProxyResponse, err error) {
 	req, multiValue, err := NewRESTAPIRequest(ctx, e)
 	if err != nil {
 		return nil, err
@@ -79,7 +65,7 @@ func (l LambdaHandler) InvokeRESTAPI(ctx context.Context, e *events.APIGatewayPr
 	return RESTAPITargetResponse(w, multiValue)
 }
 
-func (l LambdaHandler) InvokeHTTPAPI(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *events.APIGatewayV2HTTPResponse, err error) {
+func (l *LambdaHandler) InvokeHTTPAPI(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *events.APIGatewayV2HTTPResponse, err error) {
 	req, err := NewHTTPAPIRequest(ctx, e)
 	if err != nil {
 		return nil, err
@@ -90,7 +76,7 @@ func (l LambdaHandler) InvokeHTTPAPI(ctx context.Context, e *events.APIGatewayV2
 	return HTTPAPIResponse(w)
 }
 
-func (l LambdaHandler) InvokeALBTargetGroup(ctx context.Context, request *events.ALBTargetGroupRequest) (r *events.ALBTargetGroupResponse, err error) {
+func (l *LambdaHandler) InvokeALBTargetGroup(ctx context.Context, request *events.ALBTargetGroupRequest) (r *events.ALBTargetGroupResponse, err error) {
 	req, multiValue, err := NewALBTargetGroupRequest(ctx, request)
 	if err != nil {
 		return nil, err
@@ -101,7 +87,35 @@ func (l LambdaHandler) InvokeALBTargetGroup(ctx context.Context, request *events
 	return ALBTargetResponse(w, multiValue)
 }
 
-func (l LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
+func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.APIGatewayWebsocketProxyRequest) (r *events.APIGatewayProxyResponse, err error) {
+	req, multiValue, err := NewWebsocketRequest(ctx, request, l.wsPathPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	routeKey := request.RequestContext.RouteKey
+
+	if routeKey == "$connect" || routeKey == "$disconnect" {
+		w := NewResponseWriter()
+		l.httpHandler.ServeHTTP(w, req)
+		return RESTAPITargetResponse(w, multiValue)
+	} else {
+		if l.apiGW == nil {
+			if l.sess == nil {
+				if l.sess, err = l.sessProv(); err != nil {
+					return nil, err
+				}
+			}
+			l.apiGW = NewAPIGatewayManagementClient(l.sess, request.RequestContext.DomainName, request.RequestContext.Stage)
+		}
+
+		w := NewWebsocketResponseWriter(ctx, l.apiGW, request)
+		l.httpHandler.ServeHTTP(w, req)
+		return WebsocketResponse(w, multiValue)
+	}
+}
+
+func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	trace := handlertrace.FromContext(ctx)
 
 	var (
@@ -142,6 +156,12 @@ func (l LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, erro
 			trace.RequestEvent(ctx, payload)
 		}
 		res, err = l.InvokeALBTargetGroup(ctx, event)
+	case APIGatewayWebsocketIntegration:
+		event := &events.APIGatewayWebsocketProxyRequest{}
+		if err := json.Unmarshal(payload, event); err != nil {
+			return nil, err
+		}
+		res, err = l.InvokeWebsocketAPI(ctx, event)
 	default:
 		return nil, fmt.Errorf("unknown lambda integration type")
 	}
@@ -159,27 +179,4 @@ func (l LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, erro
 	} else {
 		return responseBytes, nil
 	}
-}
-
-type LambdaAdaptor struct {
-	h lambda.Handler
-}
-
-func (l LambdaAdaptor) ListenAndServe() error {
-	lambda.StartHandler(l.h)
-	return nil
-}
-
-func (l LambdaAdaptor) Shutdown(ctx context.Context) error {
-	return fmt.Errorf("aws_lambda: unsupported shutdown")
-}
-
-func NewLambdaAdaptor(addr string, h http.Handler) types.Adaptor {
-	return &LambdaAdaptor{
-		h: NewLambdaHandler(h),
-	}
-}
-
-func init() {
-	registry.Registry.AddAdaptor("aws_lambda", LambdaDetector, NewLambdaAdaptor)
 }

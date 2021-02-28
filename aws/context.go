@@ -18,30 +18,36 @@ func GetRawRequestContext(ctx context.Context) interface{} {
 		return &req.RequestContext
 	case *events.ALBTargetGroupRequest:
 		return &req.RequestContext
+	case *events.APIGatewayWebsocketProxyRequest:
+		return &req.RequestContext
 	}
 	return nil
 }
 
-func GetProxyRequestContext(ctx context.Context) *events.APIGatewayProxyRequestContext {
-	if o := GetRawRequestContext(ctx); o == nil {
-		return nil
-	} else {
-		return o.(*events.APIGatewayProxyRequestContext)
+func GetProxyRequestContext(ctx context.Context) (req *events.APIGatewayProxyRequestContext, ok bool) {
+	if o := GetRawRequestContext(ctx); o != nil {
+		req, ok = o.(*events.APIGatewayProxyRequestContext)
 	}
+	return
 }
 
-func GetV2HTTPRequestContext(ctx context.Context) *events.APIGatewayV2HTTPRequestContext {
-	if o := GetRawRequestContext(ctx); o == nil {
-		return nil
-	} else {
-		return o.(*events.APIGatewayV2HTTPRequestContext)
+func GetV2HTTPRequestContext(ctx context.Context) (req *events.APIGatewayV2HTTPRequestContext, ok bool) {
+	if o := GetRawRequestContext(ctx); o != nil {
+		req, ok = o.(*events.APIGatewayV2HTTPRequestContext)
 	}
+	return
 }
 
-func GetALBTargetGroupRequestContext(ctx context.Context) *events.ALBTargetGroupRequestContext {
-	if o := GetRawRequestContext(ctx); o == nil {
-		return nil
-	} else {
-		return o.(*events.ALBTargetGroupRequestContext)
+func GetALBTargetGroupRequestContext(ctx context.Context) (req *events.ALBTargetGroupRequestContext, ok bool) {
+	if o := GetRawRequestContext(ctx); o != nil {
+		req, ok = o.(*events.ALBTargetGroupRequestContext)
 	}
+	return
+}
+
+func GetWebsocketRequestContext(ctx context.Context) (req *events.APIGatewayWebsocketProxyRequestContext, ok bool) {
+	if o := GetRawRequestContext(ctx); o != nil {
+		req, ok = o.(*events.APIGatewayWebsocketProxyRequestContext)
+	}
+	return
 }

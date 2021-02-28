@@ -23,10 +23,10 @@ func (r *registry) AddAdaptor(name string, detector types.EnvironmentDetector, a
 	})
 }
 
-func (r *registry) GetAdaptor(addr string, h http.Handler) types.Adaptor {
+func (r *registry) GetAdaptor(addr string, h http.Handler, opts ...interface{}) types.Adaptor {
 	for _, d := range r.providers {
 		if d.EnvDetector() {
-			return d.Init(addr, h)
+			return d.Init(addr, h, opts)
 		}
 	}
 	return nil

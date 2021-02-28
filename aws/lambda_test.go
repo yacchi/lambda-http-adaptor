@@ -3,13 +3,19 @@ package aws
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/yacchi/lambda-http-adaptor/types"
 	"github.com/yacchi/lambda-http-adaptor/utils"
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -364,5 +370,84 @@ func TestRESTAPIModePost(t *testing.T) {
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
+	}
+}
+
+func MockAPI() http.Handler {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/production/$connect", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("content-type", "application/json")
+		writer.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(writer).Encode(utils.SemicolonSeparatedHeaderMap(request.Header))
+		if err != nil {
+			fmt.Println(err)
+		}
+	})
+
+	mux.HandleFunc("/production/$default", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		io.Copy(writer, request.Body)
+	})
+
+	mux.HandleFunc("/production/$disconnect", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write([]byte("OK " + request.URL.String()))
+	})
+
+	mux.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write([]byte("pong"))
+	})
+
+	mux.HandleFunc("/echo", func(writer http.ResponseWriter, request *http.Request) {
+		m := request.URL.Query().Get("message")
+		writer.Header().Set("Content-Type", "text/plain")
+		writer.Write([]byte(m))
+	})
+
+	mux.HandleFunc("/headers", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		for k, v := range request.Header {
+			writer.Write([]byte(fmt.Sprintf("%s=%s\n", k, strings.Join(v, ", "))))
+		}
+	})
+
+	mux.HandleFunc("/request_context", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(GetRawRequestContext(request.Context()))
+	})
+
+	//return middlewares.StripStageVar(mux.ServeHTTP)
+	return mux
+}
+
+func TestLambdaHandler_Invoke(t *testing.T) {
+	h := NewLambdaHandler(MockAPI())
+
+	cases := []struct {
+		Request string
+	}{
+		{
+			Request: filepath.Join("testdata", "websocket.connect.json"),
+		},
+		//{
+		//	Request: filepath.Join("testdata", "websocket.default.json"),
+		//},
+	}
+
+	for _, c := range cases {
+		b, err := os.ReadFile(c.Request)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		ctx := context.Background()
+		res, err := h.Invoke(ctx, b)
+		if err != nil {
+			log.Fatalln(err)
+		} else {
+			_ = res
+		}
 	}
 }

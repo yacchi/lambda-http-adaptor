@@ -10,4 +10,4 @@ type Adaptor interface {
 	Shutdown(ctx context.Context) error
 }
 
-type AdaptorInitializer func(addr string, h http.Handler) Adaptor
+type AdaptorInitializer func(addr string, h http.Handler, opts []interface{}) Adaptor

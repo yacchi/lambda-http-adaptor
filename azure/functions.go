@@ -29,7 +29,7 @@ func FunctionsDetector() bool {
 	return ok
 }
 
-func NewAzureFunctionsAdaptor(addr string, h http.Handler) types.Adaptor {
+func NewAzureFunctionsAdaptor(addr string, h http.Handler, opts []interface{}) types.Adaptor {
 	port := os.Getenv(FunctionsHTTPWorkerPortEnvKey)
 	return &FunctionsAdaptor{
 		s: &http.Server{
