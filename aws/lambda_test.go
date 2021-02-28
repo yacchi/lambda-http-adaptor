@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -431,13 +430,16 @@ func TestLambdaHandler_Invoke(t *testing.T) {
 		{
 			Request: filepath.Join("testdata", "websocket.connect.json"),
 		},
-		//{
-		//	Request: filepath.Join("testdata", "websocket.default.json"),
-		//},
+		{
+			Request: filepath.Join("testdata", "websocket.default.json"),
+		},
+		{
+			Request: filepath.Join("testdata", "websocket.disconnect.json"),
+		},
 	}
 
 	for _, c := range cases {
-		b, err := os.ReadFile(c.Request)
+		b, err := ioutil.ReadFile(c.Request)
 		if err != nil {
 			log.Fatalln(err)
 		}

@@ -1,0 +1,111 @@
+{
+  "resource": "",
+  "path": "",
+  "httpMethod": "",
+  "headers": {
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+    "Cache-Control": "no-cache",
+    "Host": "xxxxxxxx.execute-api.ap-northeast-1.amazonaws.com",
+    "Origin": "chrome-extension://mdmlhchldhfnfnkfmljgeinlffmdgkjo",
+    "Pragma": "no-cache",
+    "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+    "Sec-WebSocket-Key": "5LEt0ZmRO8HUEuyKWTd3vA==",
+    "Sec-WebSocket-Version": "13",
+    "User-Agent": "Mozilla/5.0",
+    "X-Amzn-Trace-Id": "Root=",
+    "X-Forwarded-For": "192.0.2.1",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept-Encoding": [
+      "gzip, deflate, br"
+    ],
+    "Accept-Language": [
+      "ja,en-US;q=0.9,en;q=0.8"
+    ],
+    "Cache-Control": [
+      "no-cache"
+    ],
+    "Content-Length": [
+      "0"
+    ],
+    "Host": [
+      "xxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+    ],
+    "Origin": [
+      "chrome-extension://mdmlhchldhfnfnkfmljgeinlffmdgkjo"
+    ],
+    "Pragma": [
+      "no-cache"
+    ],
+    "Sec-WebSocket-Extensions": [
+      "permessage-deflate; client_max_window_bits"
+    ],
+    "Sec-WebSocket-Key": [
+      "5LEt0ZmRO8HUEuyKWTd3vA=="
+    ],
+    "Sec-WebSocket-Version": [
+      "13"
+    ],
+    "User-Agent": [
+      "Mozilla/5.0"
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root="
+    ],
+    "X-Forwarded-For": [
+      "192.0.2.1"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "",
+    "resourceId": "",
+    "stage": "production",
+    "requestId": "bNgHpHbfNjMFu3Q=",
+    "identity": {
+      "cognitoIdentityPoolId": "",
+      "accountId": "",
+      "cognitoIdentityId": "",
+      "caller": "",
+      "apiKey": "",
+      "apiKeyId": "",
+      "accessKey": "",
+      "sourceIp": "192.0.2.1",
+      "cognitoAuthenticationType": "",
+      "cognitoAuthenticationProvider": "",
+      "userArn": "",
+      "userAgent": "Mozilla/5.0",
+      "user": ""
+    },
+    "resourcePath": "",
+    "authorizer": null,
+    "httpMethod": "",
+    "apiId": "xxxxxxxx",
+    "connectedAt": 1614104317651,
+    "connectionId": "bT4vZcXQtjMCEXg=",
+    "domainName": "xxxxxxxx.execute-api.ap-northeast-1.amazonaws.com",
+    "error": "",
+    "eventType": "CONNECT",
+    "extendedRequestId": "bNgHpHbfNjMFu3Q=",
+    "integrationLatency": "",
+    "messageDirection": "IN",
+    "messageId": null,
+    "requestTime": "23/Feb/2021:18:18:37 +0000",
+    "requestTimeEpoch": 1614104317652,
+    "routeKey": "$connect",
+    "status": ""
+  },
+  "body": ""
+}
