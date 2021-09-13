@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Strip stage var from Request path under the AWS API Gateway environment with deployment stage feature.
+// StripStageVar Strip stage var from Request path under the AWS API Gateway environment with deployment stage feature.
 func StripStageVar(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if rawReq, ok := utils.RawRequestValue(request.Context()); ok {

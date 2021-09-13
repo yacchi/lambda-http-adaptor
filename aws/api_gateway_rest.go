@@ -1,4 +1,6 @@
 /*
+Package aws provides an implementation using aws-sdk-go.
+
 Lambda event type compatibility layer for AWS API Gateway with REST API mode.
 
 See lambda event detail:
@@ -20,7 +22,7 @@ import (
 	"strconv"
 )
 
-// Lambda event type to http.Request converter for API Gateway with REST API mode.
+// NewRESTAPIRequest Lambda event type to http.Request converter for API Gateway with REST API mode.
 func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r *http.Request, multiValue bool, err error) {
 	var (
 		body   *bytes.Buffer
@@ -93,7 +95,7 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 	return
 }
 
-// Response writer for API Gateway with REST API mode.
+// RESTAPITargetResponse Response writer for API Gateway with REST API mode.
 func RESTAPITargetResponse(w *ResponseWriter, multiValue bool) (r *events.APIGatewayProxyResponse, err error) {
 	r = &events.APIGatewayProxyResponse{
 		StatusCode:      w.status,

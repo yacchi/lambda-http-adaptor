@@ -1,4 +1,4 @@
 package types
 
-// Environment detect function
+// EnvironmentDetector Environment detect function
 type EnvironmentDetector func() bool

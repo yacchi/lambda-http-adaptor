@@ -1,4 +1,6 @@
 /*
+Package aws provides an implementation using aws-sdk-go.
+
 Lambda event type compatibility layer for AWS API Gateway with REST API mode.
 
 See lambda event detail:
@@ -32,7 +34,7 @@ var (
 	DefaultRouteSelectionExpression = "$request.body.action"
 )
 
-// Lambda event type to http.Request converter for API Gateway with REST API mode.
+// NewWebsocketRequest Lambda event type to http.Request converter for API Gateway with REST API mode.
 func NewWebsocketRequest(ctx context.Context, e *events.APIGatewayWebsocketProxyRequest, pathPrefix string) (r *http.Request, multiValue bool, err error) {
 	var (
 		body   *bytes.Buffer
@@ -133,7 +135,7 @@ func NewAPIGatewayManagementClient(sess *session.Session, domain, stage string) 
 	return apigatewaymanagementapi.New(sess, conf)
 }
 
-// Response writer for API Gateway with REST API mode.
+// WebsocketResponse Response writer for API Gateway with REST API mode.
 func WebsocketResponse(w *WebsocketResponseWriter, multiValue bool) (r *events.APIGatewayProxyResponse, err error) {
 	r = &events.APIGatewayProxyResponse{
 		StatusCode:      w.status,
@@ -202,6 +204,7 @@ func expandBrace(s string) (string, int) {
 	return s, len(s)
 }
 
+// RouteSelector
 // https://docs.aws.amazon.com/apigateway/latest/developerguide/websocket-api-develop-routes.html#apigateway-websocket-api-route-selection-expressions
 func RouteSelector(req *events.APIGatewayWebsocketProxyRequest, expression string) (route string, err error) {
 	var (

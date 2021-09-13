@@ -1,4 +1,6 @@
 /*
+Package aws provides an implementation using aws-sdk-go.
+
 Lambda event type compatibility layer for AWS API Gateway with HTTP API mode.
 
 See lambda event detail:
@@ -19,7 +21,7 @@ import (
 	"strconv"
 )
 
-// Lambda event type to http.Request converter for API Gateway with HTTP API mode.
+// NewHTTPAPIRequest Lambda event type to http.Request converter for API Gateway with HTTP API mode.
 func NewHTTPAPIRequest(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (r *http.Request, err error) {
 	var (
 		body   *bytes.Buffer
@@ -86,7 +88,7 @@ func NewHTTPAPIRequest(ctx context.Context, e *events.APIGatewayV2HTTPRequest) (
 
 }
 
-// Response writer for API Gateway with HTTP API mode.
+// HTTPAPIResponse Response writer for API Gateway with HTTP API mode.
 func HTTPAPIResponse(w *ResponseWriter) (r *events.APIGatewayV2HTTPResponse, err error) {
 	r = &events.APIGatewayV2HTTPResponse{
 		StatusCode:      w.status,
