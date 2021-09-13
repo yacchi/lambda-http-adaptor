@@ -1,9 +1,12 @@
 import * as core from "@aws-cdk/core"
 import * as iam from "@aws-cdk/aws-iam"
+import {Effect} from "@aws-cdk/aws-iam"
 import * as lambda from "@aws-cdk/aws-lambda"
-import * as apiGw from "@aws-cdk/aws-apigatewayv2"
+import * as apiGWv1 from "@aws-cdk/aws-apigateway"
+import {AuthorizationType} from "@aws-cdk/aws-apigateway"
+import * as apiGWv2 from "@aws-cdk/aws-apigatewayv2"
 import {GoFunction} from "@aws-cdk/aws-lambda-go"
-import {LambdaProxyIntegration} from "@aws-cdk/aws-apigatewayv2-integrations"
+import {LambdaProxyIntegration, LambdaWebSocketIntegration} from "@aws-cdk/aws-apigatewayv2-integrations"
 import {RetentionDays} from "@aws-cdk/aws-logs";
 import * as path from "path";
 
@@ -25,6 +28,21 @@ import * as path from "path";
         managedPolicies: [
             iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
         ],
+        inlinePolicies: {
+            Websocket: new iam.PolicyDocument({
+                statements: [
+                    new iam.PolicyStatement({
+                        effect: Effect.ALLOW,
+                        actions: [
+                            "execute-api:ManageConnections",
+                        ],
+                        resources: [
+                            `arn:${core.Aws.PARTITION}:execute-api:*:${core.Aws.ACCOUNT_ID}:*/*/*/*`  
+                        ],
+                    })
+                ]
+            })
+        }
     })
 
     const appDir = path.join(__dirname, "app")
@@ -43,27 +61,66 @@ import * as path from "path";
         timeout: core.Duration.minutes(1),
     })
 
-    const integration = new LambdaProxyIntegration({
+    const integrationV1 = new apiGWv1.LambdaIntegration(handler)
+
+    const integrationV2 = new LambdaProxyIntegration({
         handler,
     })
 
-    const httpAPI = new apiGw.HttpApi(stack, `${prefix}API`, {
-        apiName: "sample-app",
+    const restAPI = new apiGWv1.RestApi(stack, `${prefix}API-REST`, {
+        restApiName: "sample-app-rest",
+        cloudWatchRole: false,
+        endpointTypes: [apiGWv1.EndpointType.REGIONAL],
+    })
+
+    restAPI.root.addProxy({
+        anyMethod: true,
+        defaultIntegration: integrationV1,
+        defaultMethodOptions: {
+            authorizationType: AuthorizationType.IAM,
+        }
+    })
+
+    const httpAPI = new apiGWv2.HttpApi(stack, `${prefix}API-HTTP`, {
+        apiName: "sample-app-http",
         createDefaultStage: true,
     })
 
     httpAPI.addRoutes({
         path: "/{proxy+}",
         methods: [
-            apiGw.HttpMethod.ANY,
+            apiGWv2.HttpMethod.ANY,
         ],
-        integration,
+        integration: integrationV2,
     })
 
-    new apiGw.HttpStage(stack, `${prefix}APIStage`, {
+    new apiGWv2.HttpStage(stack, `${prefix}APIStage`, {
         httpApi: httpAPI,
         stageName: "test",
         autoDeploy: true,
     })
 
+    const integrationWS = new LambdaWebSocketIntegration({
+        handler,
+    })
+
+    const webSocketApi = new apiGWv2.WebSocketApi(stack, `${prefix}API-WS`, {
+        apiName: "websocket-api",
+        routeSelectionExpression: "$request.body.action",
+        connectRouteOptions: {
+            integration: integrationWS,
+        },
+        disconnectRouteOptions: {
+            integration: integrationWS,
+        },
+        defaultRouteOptions: {
+            integration: integrationWS,
+        },
+    })
+
+    new apiGWv2.WebSocketStage(stack, `${prefix}API-WS-Prod`, {
+        stageName: "prod",
+        webSocketApi,
+        autoDeploy: true,
+    })
 })()
