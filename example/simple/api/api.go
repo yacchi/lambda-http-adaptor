@@ -48,37 +48,55 @@ func ProvideAPI() http.Handler {
 
 	mux.HandleFunc("/websocket/$default", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
-		io.Copy(writer, request.Body)
+		_, err := io.Copy(writer, request.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	mux.HandleFunc("/websocket/$disconnect", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
-		json.NewEncoder(writer).Encode(map[string]string{
+		err := json.NewEncoder(writer).Encode(map[string]string{
 			"message": "bye",
 		})
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	mux.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
-		writer.Write([]byte("pong"))
+		_, err := writer.Write([]byte("pong"))
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	mux.HandleFunc("/echo", func(writer http.ResponseWriter, request *http.Request) {
 		m := request.URL.Query().Get("message")
 		writer.Header().Set("Content-Type", "text/plain")
-		writer.Write([]byte(m))
+		_, err := writer.Write([]byte(m))
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	mux.HandleFunc("/headers", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
 		for k, v := range request.Header {
-			writer.Write([]byte(fmt.Sprintf("%s=%s\n", k, strings.Join(v, ", "))))
+			_, err := writer.Write([]byte(fmt.Sprintf("%s=%s\n", k, strings.Join(v, ", "))))
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	})
 
 	mux.HandleFunc("/request_context", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
-		json.NewEncoder(writer).Encode(aws.GetRawRequestContext(request.Context()))
+		err := json.NewEncoder(writer).Encode(aws.GetRawRequestContext(request.Context()))
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
