@@ -34,6 +34,6 @@ func (r *registry) GetAdaptor(addr string, h http.Handler, opts ...interface{}) 
 
 var Registry registry
 
-func GetAdaptor(addr string, h http.Handler) types.Adaptor {
-	return Registry.GetAdaptor(addr, h)
+func GetAdaptor(addr string, h http.Handler, opts ...interface{}) types.Adaptor {
+	return Registry.GetAdaptor(addr, h, opts...)
 }

@@ -18,3 +18,16 @@ func ListenAndServe(addr string, h http.Handler) error {
 
 	return adaptor.ListenAndServe()
 }
+
+func ListenAndServeWithOptions(addr string, h http.Handler, opts ...interface{}) error {
+	if h == nil {
+		h = http.DefaultServeMux
+	}
+
+	adaptor := registry.GetAdaptor(addr, h, opts...)
+	if adaptor == nil {
+		return fmt.Errorf("adaptor: not found")
+	}
+
+	return adaptor.ListenAndServe()
+}
