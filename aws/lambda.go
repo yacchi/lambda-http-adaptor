@@ -7,8 +7,9 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambda/handlertrace"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"net/http"
 )
 
@@ -22,21 +23,29 @@ func WithAWSSessionProvider(sp SDKSessionProvider) LambdaHandlerOption {
 	}
 }
 
+type SDKConfigProvider func(ctx context.Context) (aws.Config, error)
+
+func WithAWSConfigProvider(sp SDKConfigProvider) LambdaHandlerOption {
+	return func(handler *LambdaHandler) {
+		handler.confProv = sp
+	}
+}
+
 type LambdaHandler struct {
 	httpHandler  http.Handler
 	sessProv     SDKSessionProvider
 	sess         *session.Session
-	apiGW        *apigatewaymanagementapi.ApiGatewayManagementApi
+	confProv     SDKConfigProvider
+	conf         *aws.Config
+	apiGW        APIGatewayManagementAPI
 	wsPathPrefix string
 }
 
 func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Handler {
 	handler := &LambdaHandler{
 		httpHandler: h,
-		sessProv: func() (*session.Session, error) {
-			return session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-			})
+		confProv: func(ctx context.Context) (aws.Config, error) {
+			return config.LoadDefaultConfig(ctx)
 		},
 		wsPathPrefix: DefaultWebsocketPathPrefix,
 	}
@@ -87,6 +96,36 @@ func (l *LambdaHandler) InvokeALBTargetGroup(ctx context.Context, request *event
 	return ALBTargetResponse(w, multiValue)
 }
 
+func (l *LambdaHandler) ProvideAPIGatewayClient(ctx context.Context, request *events.APIGatewayWebsocketProxyRequest) (client APIGatewayManagementAPI, err error) {
+	if l.apiGW != nil {
+		return l.apiGW, nil
+	}
+
+	if l.sessProv != nil {
+		if l.sess == nil {
+			if l.sess, err = l.sessProv(); err != nil {
+				return nil, err
+			}
+		}
+		l.apiGW = NewAPIGatewayManagementClientV1(l.sess, request.RequestContext.DomainName, request.RequestContext.Stage)
+	} else if l.confProv != nil {
+		if l.conf == nil {
+			if conf, err := l.confProv(ctx); err != nil {
+				return nil, err
+			} else {
+				l.conf = &conf
+			}
+		}
+		l.apiGW = NewAPIGatewayManagementClientV2(l.conf, request.RequestContext.DomainName, request.RequestContext.Stage)
+	}
+
+	if l.apiGW != nil {
+		return l.apiGW, nil
+	} else {
+		return nil, fmt.Errorf("can not provide client for API Gateway management API")
+	}
+}
+
 func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.APIGatewayWebsocketProxyRequest) (r *events.APIGatewayProxyResponse, err error) {
 	req, multiValue, err := NewWebsocketRequest(ctx, request, l.wsPathPrefix)
 	if err != nil {
@@ -100,18 +139,13 @@ func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.
 		l.httpHandler.ServeHTTP(w, req)
 		return RESTAPITargetResponse(w, multiValue)
 	} else {
-		if l.apiGW == nil {
-			if l.sess == nil {
-				if l.sess, err = l.sessProv(); err != nil {
-					return nil, err
-				}
-			}
-			l.apiGW = NewAPIGatewayManagementClient(l.sess, request.RequestContext.DomainName, request.RequestContext.Stage)
+		if apiGW, err := l.ProvideAPIGatewayClient(ctx, request); err != nil {
+			return nil, err
+		} else {
+			w := NewWebsocketResponseWriter(ctx, apiGW, request)
+			l.httpHandler.ServeHTTP(w, req)
+			return WebsocketResponse(w, multiValue)
 		}
-
-		w := NewWebsocketResponseWriter(ctx, l.apiGW, request)
-		l.httpHandler.ServeHTTP(w, req)
-		return WebsocketResponse(w, multiValue)
 	}
 }
 

@@ -114,12 +114,28 @@ func NewWebsocketRequest(ctx context.Context, e *events.APIGatewayWebsocketProxy
 	return
 }
 
-// NewAPIGatewayManagementClient creates a new API Gateway Management Client instance from the provided parameters. The
+type APIGatewayManagementAPI interface {
+	PostToConnection(ctx context.Context, connectionID string, data []byte) (err error)
+}
+
+type v1api struct {
+	*apigatewaymanagementapi.ApiGatewayManagementApi
+}
+
+func (v *v1api) PostToConnection(ctx context.Context, connectionID string, data []byte) (err error) {
+	_, err = v.ApiGatewayManagementApi.PostToConnectionWithContext(ctx, &apigatewaymanagementapi.PostToConnectionInput{
+		ConnectionId: aws.String(connectionID),
+		Data:         data,
+	})
+	return
+}
+
+// NewAPIGatewayManagementClientV1 creates a new API Gateway Management Client instance from the provided parameters. The
 // new client will have a custom endpoint that resolves to the application's deployed API.
-func NewAPIGatewayManagementClient(sess *session.Session, domain, stage string) *apigatewaymanagementapi.ApiGatewayManagementApi {
+func NewAPIGatewayManagementClientV1(sess *session.Session, domain, stage string) APIGatewayManagementAPI {
 	conf := aws.NewConfig()
 	conf.WithEndpointResolver(endpoints.ResolverFunc(func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		if service != "execute-api" {
+		if service != apigatewaymanagementapi.EndpointsID {
 			return endpoints.ResolvedEndpoint{}, &endpoints.EndpointNotFoundError{}
 		} else {
 			var endpoint url.URL
@@ -132,7 +148,7 @@ func NewAPIGatewayManagementClient(sess *session.Session, domain, stage string) 
 			}, nil
 		}
 	}))
-	return apigatewaymanagementapi.New(sess, conf)
+	return &v1api{apigatewaymanagementapi.New(sess, conf)}
 }
 
 // WebsocketResponse Response writer for API Gateway with REST API mode.

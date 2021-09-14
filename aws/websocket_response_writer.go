@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"net/http"
 )
 
 type WebsocketResponseWriter struct {
 	ctx         context.Context
-	client      *apigatewaymanagementapi.ApiGatewayManagementApi
+	client      APIGatewayManagementAPI
 	req         *events.APIGatewayWebsocketProxyRequest
 	status      int
 	headers     http.Header
@@ -20,7 +18,7 @@ type WebsocketResponseWriter struct {
 	closeCh     chan bool
 }
 
-func NewWebsocketResponseWriter(ctx context.Context, client *apigatewaymanagementapi.ApiGatewayManagementApi, request *events.APIGatewayWebsocketProxyRequest) *WebsocketResponseWriter {
+func NewWebsocketResponseWriter(ctx context.Context, client APIGatewayManagementAPI, request *events.APIGatewayWebsocketProxyRequest) *WebsocketResponseWriter {
 	return &WebsocketResponseWriter{
 		ctx:     ctx,
 		client:  client,
@@ -39,10 +37,7 @@ func (w *WebsocketResponseWriter) Write(i []byte) (int, error) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	_, err := w.client.PostToConnectionWithContext(w.ctx, &apigatewaymanagementapi.PostToConnectionInput{
-		ConnectionId: aws.String(w.req.RequestContext.ConnectionID),
-		Data:         i,
-	})
+	err := w.client.PostToConnection(w.ctx, w.req.RequestContext.ConnectionID, i)
 	if err != nil {
 		return 0, err
 	}
