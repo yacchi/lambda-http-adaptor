@@ -10,5 +10,5 @@ import (
 
 func main() {
 	api := api2.ProvideAPI()
-	log.Fatalln(adaptor.ListenAndServe("0.0.0.0:8888", middlewares.APIGatewayStripStageVar(api)))
+	log.Fatalln(adaptor.ListenAndServe("0.0.0.0:8888", middlewares.APIGatewayStripBasePath(api)))
 }

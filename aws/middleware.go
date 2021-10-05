@@ -9,15 +9,17 @@ import (
 	"strings"
 )
 
-// StripStageVar Strip stage var from Request path under the AWS API Gateway environment with deployment stage feature.
-func StripStageVar(next http.Handler) http.Handler {
+// StripBasePath Strip base path from Request path under the AWS API Gateway environment with deployment stage and API Mapping feature.
+func StripBasePath(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if rawReq, ok := utils.RawRequestValue(request.Context()); ok {
 			var stage string
 
 			switch req := rawReq.(type) {
 			case *events.APIGatewayProxyRequest:
-				stage = req.RequestContext.Stage
+				// If CustomDomain API Mapping was used, BasePath will be inserted instead of StageName.
+				// Recreate the original path from ResourcePath and PathParameters.
+				request.URL.Path = ExpandPathParameters(req.RequestContext.ResourcePath, req.PathParameters)
 			case *events.APIGatewayV2HTTPRequest:
 				stage = req.RequestContext.Stage
 			case *events.APIGatewayWebsocketProxyRequest:

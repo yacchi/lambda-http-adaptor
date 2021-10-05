@@ -6,10 +6,15 @@ import (
 )
 
 var (
-	APIGatewayStripStageVar   = aws.StripStageVar
+	APIGatewayStripStageVar   = aws.StripBasePath
+	APIGatewayStripBasePath   = aws.StripBasePath
 	APIGatewayWebsocketRouter = aws.WebsocketRouter
 )
 
 func StripStageVar(next http.HandlerFunc) http.HandlerFunc {
-	return aws.StripStageVar(next).ServeHTTP
+	return aws.StripBasePath(next).ServeHTTP
+}
+
+func StripBasePath(next http.HandlerFunc) http.HandlerFunc {
+	return aws.StripBasePath(next).ServeHTTP
 }
