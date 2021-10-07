@@ -51,3 +51,19 @@ func GetWebsocketRequestContext(ctx context.Context) (req *events.APIGatewayWebs
 	}
 	return
 }
+
+func GetStageVariables(ctx context.Context) map[string]string {
+	rawReq, ok := utils.RawRequestValue(ctx)
+	if !ok {
+		return nil
+	}
+	switch req := rawReq.(type) {
+	case *events.APIGatewayProxyRequest:
+		return req.StageVariables
+	case *events.APIGatewayV2HTTPRequest:
+		return req.StageVariables
+	case *events.APIGatewayWebsocketProxyRequest:
+		return req.StageVariables
+	}
+	return nil
+}
