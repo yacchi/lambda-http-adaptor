@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"bytes"
 	"context"
 	"github.com/aws/aws-lambda-go/events"
 	"net/http"
@@ -13,7 +12,6 @@ type WebsocketResponseWriter struct {
 	req         *events.APIGatewayWebsocketProxyRequest
 	status      int
 	headers     http.Header
-	buf         bytes.Buffer
 	wroteHeader bool
 	closeCh     chan bool
 }

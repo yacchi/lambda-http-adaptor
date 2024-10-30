@@ -9,10 +9,10 @@ import (
 	"github.com/yacchi/lambda-http-adaptor/types"
 	"github.com/yacchi/lambda-http-adaptor/utils"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -39,9 +39,13 @@ type httpTest struct {
 	Compare  func(t *testing.T)
 }
 
-const (
-	textCtx    = "Testing"
-	requestCtx = "Request"
+type ctxKey struct {
+	string
+}
+
+var (
+	textCtx    = ctxKey{"Testing"}
+	requestCtx = ctxKey{"Request"}
 )
 
 func NewTestContext(t *testing.T, ht httpTest) context.Context {
@@ -138,7 +142,7 @@ var httpPostTests = []httpTest{
 			ct := request.Header.Get(types.HTTPHeaderContentType)
 			assert.Equal(t, ct, req.Header.Get(types.HTTPHeaderContentType))
 
-			body, err := ioutil.ReadAll(request.Body)
+			body, err := io.ReadAll(request.Body)
 			assert.NoError(t, err)
 
 			var data map[string]string
@@ -439,7 +443,7 @@ func TestLambdaHandler_Invoke(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		b, err := ioutil.ReadFile(c.Request)
+		b, err := os.ReadFile(c.Request)
 		if err != nil {
 			log.Fatalln(err)
 		}

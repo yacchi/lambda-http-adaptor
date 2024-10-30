@@ -46,10 +46,7 @@ func IsBinaryContent(h http.Header) bool {
 		}
 	}
 
-	if IsTextContent(h.Get(types.HTTPHeaderContentType)) {
-		return false
-	}
-	return true
+	return !IsTextContent(h.Get(types.HTTPHeaderContentType))
 }
 
 func IsTextContent(contentType string) bool {
