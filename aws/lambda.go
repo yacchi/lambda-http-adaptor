@@ -13,6 +13,8 @@ import (
 	"net/http"
 )
 
+const DefaultNonHTTPEventPath = "/events"
+
 type LambdaHandlerOption func(handler *LambdaHandler)
 
 type SDKSessionProvider func() (*session.Session, error)
@@ -31,14 +33,27 @@ func WithAWSConfigProvider(sp SDKConfigProvider) LambdaHandlerOption {
 	}
 }
 
+func WithNonHTTPEventPath(path string) LambdaHandlerOption {
+	return func(handler *LambdaHandler) {
+		handler.nonHTTPEventPath = path
+	}
+}
+
+func WithoutNonHTTPEventPassThrough() LambdaHandlerOption {
+	return func(handler *LambdaHandler) {
+		handler.nonHTTPEventPath = ""
+	}
+}
+
 type LambdaHandler struct {
-	httpHandler  http.Handler
-	sessProv     SDKSessionProvider
-	sess         *session.Session
-	confProv     SDKConfigProvider
-	conf         *aws.Config
-	apiGW        APIGatewayManagementAPI
-	wsPathPrefix string
+	httpHandler      http.Handler
+	sessProv         SDKSessionProvider
+	sess             *session.Session
+	confProv         SDKConfigProvider
+	conf             *aws.Config
+	apiGW            APIGatewayManagementAPI
+	wsPathPrefix     string
+	nonHTTPEventPath string
 }
 
 func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Handler {
@@ -47,7 +62,8 @@ func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Ha
 		confProv: func(ctx context.Context) (aws.Config, error) {
 			return config.LoadDefaultConfig(ctx)
 		},
-		wsPathPrefix: DefaultWebsocketPathPrefix,
+		wsPathPrefix:     DefaultWebsocketPathPrefix,
+		nonHTTPEventPath: DefaultNonHTTPEventPath,
 	}
 
 	for _, opt := range options {
@@ -94,6 +110,19 @@ func (l *LambdaHandler) InvokeALBTargetGroup(ctx context.Context, request *event
 	w := NewResponseWriter()
 	l.httpHandler.ServeHTTP(w, req)
 	return ALBTargetResponse(w, multiValue)
+}
+
+func (l *LambdaHandler) HandleNonHTTPEvent(ctx context.Context, event []byte, contentType string) ([]byte, error) {
+	if l.nonHTTPEventPath == "" {
+		return nil, fmt.Errorf("unknown lambda integration type and non-http event path is not set")
+	}
+	req, err := NewLambdaPassthroughRequest(ctx, event, l.nonHTTPEventPath, contentType)
+	if err != nil {
+		return nil, err
+	}
+	w := NewResponseWriter()
+	l.httpHandler.ServeHTTP(w, req)
+	return w.buf.Bytes(), nil
 }
 
 func (l *LambdaHandler) ProvideAPIGatewayClient(ctx context.Context, request *events.APIGatewayWebsocketProxyRequest) (client APIGatewayManagementAPI, err error) {
@@ -158,46 +187,46 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 		err     error
 	)
 
-	if err := json.Unmarshal(payload, &checker); err != nil {
-		return nil, err
-	}
-
-	switch checker.IntegrationType() {
-	case APIGatewayRESTIntegration:
-		event := &events.APIGatewayProxyRequest{}
-		if err := json.Unmarshal(payload, event); err != nil {
-			return nil, err
+	if err = json.Unmarshal(payload, &checker); err != nil {
+		res, err = l.HandleNonHTTPEvent(ctx, payload, http.DetectContentType(payload))
+	} else {
+		switch checker.IntegrationType() {
+		case APIGatewayRESTIntegration:
+			event := &events.APIGatewayProxyRequest{}
+			if err := json.Unmarshal(payload, event); err != nil {
+				return nil, err
+			}
+			if trace.RequestEvent != nil {
+				trace.RequestEvent(ctx, payload)
+			}
+			res, err = l.InvokeRESTAPI(ctx, event)
+		case APIGatewayHTTPIntegration:
+			event := &events.APIGatewayV2HTTPRequest{}
+			if err := json.Unmarshal(payload, event); err != nil {
+				return nil, err
+			}
+			if trace.RequestEvent != nil {
+				trace.RequestEvent(ctx, payload)
+			}
+			res, err = l.InvokeHTTPAPI(ctx, event)
+		case ALBTargetGroupIntegration:
+			event := &events.ALBTargetGroupRequest{}
+			if err := json.Unmarshal(payload, event); err != nil {
+				return nil, err
+			}
+			if trace.RequestEvent != nil {
+				trace.RequestEvent(ctx, payload)
+			}
+			res, err = l.InvokeALBTargetGroup(ctx, event)
+		case APIGatewayWebsocketIntegration:
+			event := &events.APIGatewayWebsocketProxyRequest{}
+			if err := json.Unmarshal(payload, event); err != nil {
+				return nil, err
+			}
+			res, err = l.InvokeWebsocketAPI(ctx, event)
+		default:
+			res, err = l.HandleNonHTTPEvent(ctx, payload, "application/json")
 		}
-		if trace.RequestEvent != nil {
-			trace.RequestEvent(ctx, payload)
-		}
-		res, err = l.InvokeRESTAPI(ctx, event)
-	case APIGatewayHTTPIntegration:
-		event := &events.APIGatewayV2HTTPRequest{}
-		if err := json.Unmarshal(payload, event); err != nil {
-			return nil, err
-		}
-		if trace.RequestEvent != nil {
-			trace.RequestEvent(ctx, payload)
-		}
-		res, err = l.InvokeHTTPAPI(ctx, event)
-	case ALBTargetGroupIntegration:
-		event := &events.ALBTargetGroupRequest{}
-		if err := json.Unmarshal(payload, event); err != nil {
-			return nil, err
-		}
-		if trace.RequestEvent != nil {
-			trace.RequestEvent(ctx, payload)
-		}
-		res, err = l.InvokeALBTargetGroup(ctx, event)
-	case APIGatewayWebsocketIntegration:
-		event := &events.APIGatewayWebsocketProxyRequest{}
-		if err := json.Unmarshal(payload, event); err != nil {
-			return nil, err
-		}
-		res, err = l.InvokeWebsocketAPI(ctx, event)
-	default:
-		return nil, fmt.Errorf("unknown lambda integration type")
 	}
 
 	if err != nil {
@@ -208,9 +237,13 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 		trace.ResponseEvent(ctx, res)
 	}
 
-	if responseBytes, err := json.Marshal(res); err != nil {
-		return nil, err
+	if b, ok := res.([]byte); ok {
+		return b, nil
 	} else {
-		return responseBytes, nil
+		if responseBytes, err := json.Marshal(res); err != nil {
+			return nil, err
+		} else {
+			return responseBytes, nil
+		}
 	}
 }

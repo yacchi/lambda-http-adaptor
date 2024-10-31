@@ -30,6 +30,23 @@ func echoReplyHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+## Pass through non-http events
+
+Pass-through of non-HTTP Events has been added in v0.5.0.
+The destination path is /events by default.
+If you want to change the forwarding path or stop forwarding, please refer to the following sample for configuration.
+
+```go
+func main() {
+  log.Fatalln(adaptor.ListenAndServeWithOptions(
+    "",
+    handler,
+    // aws.WithNonHTTPEventPath("/api"),
+	// aws.WithoutNonHTTPEventPassThrough(),
+  )
+}
+```
+
 ## Features
 - AWS Lambda support
   - [x] API Gateway REST API integration
@@ -45,6 +62,7 @@ func echoReplyHandler(w http.ResponseWriter, r *http.Request) {
   - [x] Get raw request value from Context
   - [x] Lambda container image function
   - [x] API Gateway Websocket API integration (Experimental)
+  - [x] Non-HTTP event pass-through
 - AWS API Gateway utilities
   - [x] Strip stage var middleware
   - [ ] Abstract interface of RequestContext  

@@ -35,6 +35,17 @@ func (w *writerWrapper) WriteHeader(code int) {
 func ProvideAPI() http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/events", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		body, _ := io.ReadAll(request.Body)
+		println(request.Header.Get("Content-Type"))
+		println(string(body))
+		_, err := writer.Write(body)
+		if err != nil {
+			fmt.Println(err)
+		}
+	})
+
 	mux.HandleFunc("/websocket/$connect", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(writer).Encode(map[string]interface{}{
