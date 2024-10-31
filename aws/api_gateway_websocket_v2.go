@@ -30,21 +30,11 @@ func (v v2api) PostToConnection(ctx context.Context, connectionID string, data [
 // NewAPIGatewayManagementClientV2 creates a new API Gateway Management Client instance from the provided parameters. The
 // new client will have a custom endpoint that resolves to the application's deployed API.
 func NewAPIGatewayManagementClientV2(conf *aws.Config, domain, stage string) APIGatewayManagementAPI {
-	localConf := conf.Copy()
-	localConf.EndpointResolver = aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-		if service != apigatewaymanagementapi.ServiceID {
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		} else {
-			var endpoint url.URL
-			endpoint.Path = stage
-			endpoint.Host = domain
-			endpoint.Scheme = "https"
-			return aws.Endpoint{
-				SigningRegion: region,
-				URL:           endpoint.String(),
-			}, nil
-		}
-	})
-
-	return &v2api{apigatewaymanagementapi.NewFromConfig(localConf)}
+	var endpoint url.URL
+	endpoint.Path = stage
+	endpoint.Host = domain
+	endpoint.Scheme = "https"
+	return &v2api{apigatewaymanagementapi.NewFromConfig(conf.Copy(), func(o *apigatewaymanagementapi.Options) {
+		o.BaseEndpoint = aws.String(endpoint.String())
+	})}
 }
