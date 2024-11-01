@@ -14,6 +14,11 @@ import (
 var DEBUGDumpPayload = os.Getenv("DEBUG_DUMP_PAYLOAD")
 var LambdaInvokeMode = os.Getenv("LAMBDA_INVOKE_MODE")
 
+// WebsocketResponseMode
+// * return - use lambda return value as response
+// * post_to_connection - use PostToConnection API to send response
+var WebsocketResponseMode = os.Getenv("WEBSOCKET_RESPONSE_MODE")
+
 type LambdaIntegrationType int
 
 const (

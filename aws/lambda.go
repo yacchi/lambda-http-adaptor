@@ -166,7 +166,7 @@ func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.
 
 	routeKey := request.RequestContext.RouteKey
 
-	if routeKey == "$connect" || routeKey == "$disconnect" {
+	if routeKey == "$connect" || routeKey == "$disconnect" || WebsocketResponseMode == "return" {
 		w := NewResponseWriter()
 		l.httpHandler.ServeHTTP(w, req)
 		return RESTAPITargetResponse(w, multiValue)
