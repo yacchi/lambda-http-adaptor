@@ -18,13 +18,20 @@ const (
 	APIGatewayWebsocketIntegration
 	APIGatewayHTTPIntegration
 	ALBTargetGroupIntegration
+	LambdaFunctionURLIntegration
 )
 
 type integrationTypeChecker struct {
 	// 'resource' parameter only has REST API event.
 	Resource *string `json:"resource"`
-	// 'version' parameter only has HTTP API mode event.
+	// 'version' only has API Gateway V2 payload (HTTP API mode or Lambda FunctionURL).
 	Version *string `json:"version"`
+	// 'pathParameters' parameter only has API Gateway V2 payload.
+	// However, it is always nil for Function URLs.
+	PathParameters map[string]string `json:"pathParameters"`
+	// 'routeKey' parameter only has API Gateway V2 payload.
+	// However, in the case of Function URLs, it is always $default.
+	RouteKey string `json:"routeKey"`
 	// 'http_method' parameter has event of API Gateway REST API mode and ALB target group mode.
 	// However, ALB target group mode has not 'resource' parameter.
 	HTTPMethod *string `json:"httpMethod"`
@@ -47,6 +54,9 @@ func (t integrationTypeChecker) IntegrationType() LambdaIntegrationType {
 		return APIGatewayWebsocketIntegration
 	}
 	if t.Version != nil {
+		if t.RouteKey == "$default" && t.PathParameters == nil {
+			return LambdaFunctionURLIntegration
+		}
 		return APIGatewayHTTPIntegration
 	}
 	if t.HTTPMethod != nil && t.Resource == nil {
