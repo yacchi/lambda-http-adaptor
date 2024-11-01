@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambda/handlertrace"
 	"github.com/yacchi/lambda-http-adaptor/registry"
 	"github.com/yacchi/lambda-http-adaptor/types"
 	"net/http"
 	"os"
 )
+
+var DEBUGDumpPayload = os.Getenv("DEBUG_DUMP_PAYLOAD")
 
 type LambdaIntegrationType int
 
@@ -79,11 +82,22 @@ func LambdaDetector() bool {
 }
 
 type LambdaAdaptor struct {
-	h lambda.Handler
+	h *LambdaHandler
 }
 
 func (l LambdaAdaptor) ListenAndServe() error {
-	lambda.Start(l.h)
+	ctx := context.Background()
+	if DEBUGDumpPayload != "" && (DEBUGDumpPayload == "1" || DEBUGDumpPayload == "true") {
+		ctx = handlertrace.NewContext(ctx, handlertrace.HandlerTrace{
+			RequestEvent: func(ctx context.Context, payload interface{}) {
+				fmt.Printf("Request payload: %s\n", payload)
+			},
+			ResponseEvent: func(ctx context.Context, payload interface{}) {
+				fmt.Printf("Response payload: %s\n", payload)
+			},
+		})
+	}
+	lambda.StartHandlerFunc(l.h.Invoke, lambda.WithContext(ctx))
 	return nil
 }
 

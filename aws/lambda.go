@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-lambda-go/lambda/handlertrace"
 	"github.com/aws/aws-lambda-go/lambdaurl"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"net/http"
-	"os"
 )
-
-var DEBUGDumpPayload = os.Getenv("DEBUG_DUMP_PAYLOAD")
 
 const DefaultNonHTTPEventPath = "/events"
 
@@ -60,7 +55,9 @@ type LambdaHandler struct {
 	nonHTTPEventPath string
 }
 
-func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Handler {
+type HandlerFunc func(ctx context.Context, payload json.RawMessage) (res any, err error)
+
+func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) *LambdaHandler {
 	handler := &LambdaHandler{
 		httpHandler: h,
 		confProv: func(ctx context.Context) (aws.Config, error) {
@@ -79,7 +76,7 @@ func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Ha
 	return handler
 }
 
-func NewLambdaHandler(h http.Handler) lambda.Handler {
+func NewLambdaHandler(h http.Handler) *LambdaHandler {
 	return NewLambdaHandlerWithOption(h, nil)
 }
 
@@ -182,29 +179,10 @@ func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.
 	}
 }
 
-func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
-	if DEBUGDumpPayload != "" && (DEBUGDumpPayload == "1" || DEBUGDumpPayload == "true") {
-		ctx = handlertrace.NewContext(ctx, handlertrace.HandlerTrace{
-			RequestEvent: func(ctx context.Context, payload interface{}) {
-				fmt.Printf("Request payload: %s\n", payload)
-			},
-			ResponseEvent: func(ctx context.Context, payload interface{}) {
-				fmt.Printf("Response payload: %s\n", payload)
-			},
-		})
-	}
-
-	trace := handlertrace.FromContext(ctx)
-
+func (l *LambdaHandler) Invoke(ctx context.Context, payload json.RawMessage) (res any, err error) {
 	var (
 		checker integrationTypeChecker
-		res     interface{}
-		err     error
 	)
-
-	if trace.RequestEvent != nil {
-		trace.RequestEvent(ctx, payload)
-	}
 
 	if err = json.Unmarshal(payload, &checker); err != nil {
 		res, err = l.HandleNonHTTPEvent(ctx, payload, http.DetectContentType(payload))
@@ -245,23 +223,5 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	if b, ok := res.([]byte); ok {
-		if trace.ResponseEvent != nil {
-			trace.ResponseEvent(ctx, b)
-		}
-		return b, nil
-	} else {
-		if responseBytes, err := json.Marshal(res); err != nil {
-			return nil, err
-		} else {
-			if trace.ResponseEvent != nil {
-				trace.ResponseEvent(ctx, responseBytes)
-			}
-			return responseBytes, nil
-		}
-	}
+	return res, err
 }
