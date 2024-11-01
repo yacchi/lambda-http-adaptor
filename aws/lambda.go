@@ -184,6 +184,8 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload json.RawMessage) (re
 		checker integrationTypeChecker
 	)
 
+	fmt.Printf("Payload: %s\n", payload)
+
 	if err = json.Unmarshal(payload, &checker); err != nil {
 		res, err = l.HandleNonHTTPEvent(ctx, payload, http.DetectContentType(payload))
 	} else {
