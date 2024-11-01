@@ -164,6 +164,14 @@ func WebsocketResponse(w *WebsocketResponseWriter, multiValue bool) (r *events.A
 		r.Headers = utils.SemicolonSeparatedHeaderMap(w.Header())
 	}
 
+	if 0 < w.buf.Len() {
+		if r.IsBase64Encoded {
+			r.Body = base64.StdEncoding.EncodeToString(w.buf.Bytes())
+		} else {
+			r.Body = w.buf.String()
+		}
+	}
+
 	w.Done()
 	return
 }
