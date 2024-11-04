@@ -27,7 +27,6 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 	var (
 		body   *bytes.Buffer
 		header = make(http.Header)
-		query  = make(url.Values)
 	)
 
 	if e.MultiValueHeaders != nil {
@@ -53,14 +52,10 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 	u.Host = header.Get(types.HTTPHeaderHost)
 
 	if e.MultiValueQueryStringParameters != nil {
-		query = e.MultiValueQueryStringParameters
+		u.RawQuery = utils.JoinMultiValueQueryParameters(e.MultiValueQueryStringParameters)
 	} else if e.QueryStringParameters != nil {
-		for k, v := range e.QueryStringParameters {
-			query.Set(k, v)
-		}
+		u.RawQuery = utils.JoinQueryParameters(e.QueryStringParameters)
 	}
-
-	u.RawQuery = query.Encode()
 
 	// build body reader
 	if e.IsBase64Encoded {
