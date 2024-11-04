@@ -32,7 +32,11 @@ func NewRESTAPIRequest(ctx context.Context, e *events.APIGatewayProxyRequest) (r
 
 	if e.MultiValueHeaders != nil {
 		multiValue = true
-		header = e.MultiValueHeaders
+		for key, values := range e.MultiValueHeaders {
+			for _, value := range values {
+				header.Add(key, value)
+			}
+		}
 	} else if e.Headers != nil {
 		for k, v := range e.Headers {
 			header.Set(k, v)
