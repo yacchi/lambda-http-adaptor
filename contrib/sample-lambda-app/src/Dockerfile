@@ -5,7 +5,7 @@ WORKDIR /go/src
 COPY . ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache \
-    CGO_ENABLED=0 go build -tags lambda.norpc -o /main main.go
+    CGO_ENABLED=0 go build -tags lambda.norpc -o /main .
 
 # copy artifacts to a clean image
 FROM public.ecr.aws/lambda/provided:al2023

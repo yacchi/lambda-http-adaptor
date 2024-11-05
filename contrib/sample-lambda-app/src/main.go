@@ -8,12 +8,11 @@ import (
 	adaptor "github.com/yacchi/lambda-http-adaptor"
 	_ "github.com/yacchi/lambda-http-adaptor/all"
 	"github.com/yacchi/lambda-http-adaptor/aws"
-	"github.com/yacchi/lambda-http-adaptor/example/simple/api"
 	"github.com/yacchi/lambda-http-adaptor/middlewares"
 )
 
 func main() {
-	handler := api.ProvideAPI()
+	handler := ProvideAPI()
 	h := middlewares.StripStageVar(handler.ServeHTTP)
 	fmt.Println(adaptor.ListenAndServeWithOptions("", h,
 		aws.WithAWSConfigProvider(func(ctx context.Context) (aws2.Config, error) {
