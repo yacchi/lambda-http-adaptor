@@ -31,5 +31,5 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	github.com/yacchi/lambda-http-adaptor v0.4.2-0.20241031191952-89af289a93a8 // indirect
+	github.com/yacchi/lambda-http-adaptor v0.6.1-0.20241105020458-473496fe4d1e // indirect
 )

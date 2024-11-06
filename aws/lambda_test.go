@@ -189,10 +189,10 @@ func TestLambdaHTTPModeGet(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.APIGatewayV2HTTPResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.APIGatewayV2HTTPResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
@@ -222,10 +222,10 @@ func TestLambdaHTTPModePost(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.APIGatewayV2HTTPResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.APIGatewayV2HTTPResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
@@ -258,10 +258,10 @@ func TestALBTargetGroupModeGet(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.ALBTargetGroupResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.ALBTargetGroupResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
@@ -294,10 +294,10 @@ func TestALBTargetGroupModePost(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.ALBTargetGroupResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.ALBTargetGroupResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
@@ -330,10 +330,10 @@ func TestRESTAPIModeGet(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.ALBTargetGroupResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.APIGatewayProxyResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})
@@ -341,7 +341,7 @@ func TestRESTAPIModeGet(t *testing.T) {
 }
 
 func TestRESTAPIModePost(t *testing.T) {
-	for _, test := range httpGetTests {
+	for _, test := range httpPostTests {
 		t.Run(test.Name, func(t *testing.T) {
 			h := NewLambdaHandler(test.Handler)
 
@@ -366,10 +366,10 @@ func TestRESTAPIModePost(t *testing.T) {
 			ret, err := h.Invoke(NewTestContext(t, test), b)
 			assert.NoError(t, err)
 
-			var res events.ALBTargetGroupResponse
-			err = json.Unmarshal(ret, &res)
-			assert.NoError(t, err)
-
+			res, ok := ret.(*events.APIGatewayProxyResponse)
+			if !ok {
+				t.Fatalf("unexpected response: %v", ret)
+			}
 			assert.Equal(t, test.Response.Header.Get(types.HTTPHeaderContentType), res.Headers[types.HTTPHeaderContentType])
 			assert.Equal(t, string(test.Response.Body), res.Body)
 		})

@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-lambda-go/lambda/handlertrace"
+	"github.com/aws/aws-lambda-go/lambdaurl"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -46,24 +45,28 @@ func WithoutNonHTTPEventPassThrough() LambdaHandlerOption {
 }
 
 type LambdaHandler struct {
-	httpHandler      http.Handler
-	sessProv         SDKSessionProvider
-	sess             *session.Session
-	confProv         SDKConfigProvider
-	conf             *aws.Config
-	apiGW            APIGatewayManagementAPI
-	wsPathPrefix     string
-	nonHTTPEventPath string
+	httpHandler            http.Handler
+	sessProv               SDKSessionProvider
+	sess                   *session.Session
+	confProv               SDKConfigProvider
+	conf                   *aws.Config
+	apiGW                  APIGatewayManagementAPI
+	wsPathPrefix           string
+	nonHTTPEventPath       string
+	invokeLambdaWithStream func(ctx context.Context, request *events.LambdaFunctionURLRequest) (*events.LambdaFunctionURLStreamingResponse, error)
 }
 
-func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Handler {
+type HandlerFunc func(ctx context.Context, payload json.RawMessage) (res any, err error)
+
+func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) *LambdaHandler {
 	handler := &LambdaHandler{
 		httpHandler: h,
 		confProv: func(ctx context.Context) (aws.Config, error) {
 			return config.LoadDefaultConfig(ctx)
 		},
-		wsPathPrefix:     DefaultWebsocketPathPrefix,
-		nonHTTPEventPath: DefaultNonHTTPEventPath,
+		wsPathPrefix:           DefaultWebsocketPathPrefix,
+		nonHTTPEventPath:       DefaultNonHTTPEventPath,
+		invokeLambdaWithStream: lambdaurl.Wrap(h),
 	}
 
 	for _, opt := range options {
@@ -75,7 +78,7 @@ func NewLambdaHandlerWithOption(h http.Handler, options []interface{}) lambda.Ha
 	return handler
 }
 
-func NewLambdaHandler(h http.Handler) lambda.Handler {
+func NewLambdaHandler(h http.Handler) *LambdaHandler {
 	return NewLambdaHandlerWithOption(h, nil)
 }
 
@@ -163,7 +166,7 @@ func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.
 
 	routeKey := request.RequestContext.RouteKey
 
-	if routeKey == "$connect" || routeKey == "$disconnect" {
+	if routeKey == "$connect" || routeKey == "$disconnect" || WebsocketResponseMode == "return" {
 		w := NewResponseWriter()
 		l.httpHandler.ServeHTTP(w, req)
 		return RESTAPITargetResponse(w, multiValue)
@@ -178,13 +181,9 @@ func (l *LambdaHandler) InvokeWebsocketAPI(ctx context.Context, request *events.
 	}
 }
 
-func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
-	trace := handlertrace.FromContext(ctx)
-
+func (l *LambdaHandler) Invoke(ctx context.Context, payload json.RawMessage) (res any, err error) {
 	var (
 		checker integrationTypeChecker
-		res     interface{}
-		err     error
 	)
 
 	if err = json.Unmarshal(payload, &checker); err != nil {
@@ -196,26 +195,17 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 			if err := json.Unmarshal(payload, event); err != nil {
 				return nil, err
 			}
-			if trace.RequestEvent != nil {
-				trace.RequestEvent(ctx, payload)
-			}
 			res, err = l.InvokeRESTAPI(ctx, event)
 		case APIGatewayHTTPIntegration:
 			event := &events.APIGatewayV2HTTPRequest{}
 			if err := json.Unmarshal(payload, event); err != nil {
 				return nil, err
 			}
-			if trace.RequestEvent != nil {
-				trace.RequestEvent(ctx, payload)
-			}
 			res, err = l.InvokeHTTPAPI(ctx, event)
 		case ALBTargetGroupIntegration:
 			event := &events.ALBTargetGroupRequest{}
 			if err := json.Unmarshal(payload, event); err != nil {
 				return nil, err
-			}
-			if trace.RequestEvent != nil {
-				trace.RequestEvent(ctx, payload)
 			}
 			res, err = l.InvokeALBTargetGroup(ctx, event)
 		case APIGatewayWebsocketIntegration:
@@ -224,26 +214,24 @@ func (l *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 				return nil, err
 			}
 			res, err = l.InvokeWebsocketAPI(ctx, event)
+		case LambdaFunctionURLIntegration:
+			if LambdaInvokeMode == "response_stream" {
+				event := &events.LambdaFunctionURLRequest{}
+				if err := json.Unmarshal(payload, event); err != nil {
+					return nil, err
+				}
+				res, err = l.invokeLambdaWithStream(ctx, event)
+			} else {
+				event := &events.APIGatewayV2HTTPRequest{}
+				if err := json.Unmarshal(payload, event); err != nil {
+					return nil, err
+				}
+				res, err = l.InvokeHTTPAPI(ctx, event)
+			}
 		default:
 			res, err = l.HandleNonHTTPEvent(ctx, payload, "application/json")
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	if trace.ResponseEvent != nil {
-		trace.ResponseEvent(ctx, res)
-	}
-
-	if b, ok := res.([]byte); ok {
-		return b, nil
-	} else {
-		if responseBytes, err := json.Marshal(res); err != nil {
-			return nil, err
-		} else {
-			return responseBytes, nil
-		}
-	}
+	return res, err
 }
