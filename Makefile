@@ -10,6 +10,9 @@ run-local: stop build
 stop:
 	docker kill $(CONTAINER_NAME) ; true
 
+test:
+	go test -v ./...
+
 lint:
 	go vet ./...
 	go run honnef.co/go/tools/cmd/staticcheck@latest ./...

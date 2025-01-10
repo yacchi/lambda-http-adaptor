@@ -44,6 +44,8 @@ type integrationTypeChecker struct {
 	// 'http_method' parameter has event of API Gateway REST API mode and ALB target group mode.
 	// However, ALB target group mode has not 'resource' parameter.
 	HTTPMethod *string `json:"httpMethod"`
+	// Headers parameters has all API HTTP event.
+	RawPath *string `json:"rawPath"`
 
 	RequestContext struct {
 		// 'connectionID' parameter nly has API Gateway Websocket mode event.
@@ -62,7 +64,7 @@ func (t integrationTypeChecker) IntegrationType() LambdaIntegrationType {
 	if t.RequestContext.ConnectionID != nil {
 		return APIGatewayWebsocketIntegration
 	}
-	if t.Version != nil {
+	if t.Version != nil && t.RawPath != nil {
 		if t.RouteKey == "$default" && t.PathParameters == nil {
 			return LambdaFunctionURLIntegration
 		}
